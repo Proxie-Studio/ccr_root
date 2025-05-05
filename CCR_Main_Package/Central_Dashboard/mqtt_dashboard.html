@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CCR Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .status-good {
+      color: green;
+    }
+    .status-bad {
+      color: red;
+    }
+    .decision-box {
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      color: green;
+    }
+    .role-header {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Computable Collective Reasoning (CCR) Dashboard</h1>
+
+  <table id="robot-table">
+    <thead>
+      <tr>
+        <th>Device Name</th>
+        <th>Type</th>
+        <th>IP Address</th>
+        <th>Belief</th>
+        <th>Dominance</th>
+        <th>ID</th>
+        <th>Decision</th>
+        <th>Last Update</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const client = mqtt.connect('ws://192.168.0.114:9001');
+    const tableBody = document.querySelector("#robot-table tbody");
+    const robotRows = {}; // key: ID + device_type
+
+    client.on('connect', () => {
+      console.log("Connected to MQTT broker");
+      client.subscribe('robots/+/active');
+      client.subscribe('robots/+/passive');
+      client.subscribe('robots/+/data');
+    });
+
+    client.on('message', (topic, message) => {
+      const data = JSON.parse(message.toString());
+      const key = `${data.id}-${data.device_type}`;
+
+      robotRows[key] = {
+        id: data.id,
+        device_type: data.device_type,
+        device_name: data.device_name,
+        ip_address: data.ip_address,
+        dominance: data.dominance,
+        status: data.status || "",
+        decision: data.decision || "",
+        belief: data.belief || "",
+        lastUpdate: new Date().toLocaleTimeString()
+      };
+
+      updateTable();
+      evaluateTL2();
+    });
+
+    function updateTable() {
+      tableBody.innerHTML = '';
+      const groupedRobots = {};
+
+      Object.values(robotRows).forEach(robot => {
+        if (!groupedRobots[robot.id]) {
+          groupedRobots[robot.id] = [];
+        }
+        groupedRobots[robot.id].push(robot);
+      });
+
+      Object.values(groupedRobots).forEach(group => {
+        group.sort((a, b) => {
+          if (a.device_type === "Passive") return -1;
+          if (b.device_type === "Passive") return 1;
+          return 0;
+        });
+
+        let isFirst = true;
+        group.forEach(robot => {
+          let belief = "";
+
+          if (robot.device_type === "Passive") {
+            if (robot.device_name.startsWith("TrafficLight")) {
+              belief = robot.belief === "Red"
+                ? '<span class="status-bad">\uD83D\uDED1 Stop</span>'
+                : '<span class="status-good">\uD83D\uDFE2 Go</span>';
+            } else {
+              belief = robot.status === "Object Detected"
+                ? '<span class="status-bad">\uD83D\uDD34 Object Detected</span>'
+                : '<span class="status-good">\uD83D\uDFE2 No Object Detected</span>';
+            }
+          }
+
+          const decision = robot.device_type === "Active" && robot.decision
+            ? `<span class="decision-box">${robot.decision}</span>`
+            : '';
+
+          const roleHeader = isFirst
+            ? `<tr class="role-header"><td colspan="8">${robot.device_name} (ID: #${robot.id})</td></tr>`
+            : '';
+
+          const row = `
+            ${roleHeader}
+            <tr>
+              <td>${robot.device_name}</td>
+              <td>${robot.device_type}</td>
+              <td>${robot.ip_address}</td>
+              <td>${belief}</td>
+              <td>${robot.dominance}</td>
+              <td>#${robot.id}</td>
+              <td>${decision}</td>
+              <td>${robot.lastUpdate}</td>
+            </tr>
+          `;
+
+          tableBody.innerHTML += row;
+          isFirst = false;
+        });
+      });
+    }
+
+    function evaluateTL2() {
+      let turtlebot = null;
+      let traffic1 = null;
+
+      for (const key in robotRows) {
+        if (robotRows[key].device_name.includes("Turtlebot") && robotRows[key].device_type === "Passive") {
+          turtlebot = robotRows[key];
+        }
+        if (robotRows[key].device_name === "TrafficLight1" && robotRows[key].device_type === "Passive") {
+          traffic1 = robotRows[key];
+        }
+      }
+
+      if (!turtlebot || !traffic1) return;
+
+      const objectClear = turtlebot.status === "No Object Detected";
+      const goSignal = traffic1.belief === "Green";
+      const decision = (objectClear && goSignal) ? "g" : "r";
+
+      console.log("Decision for TL2:", decision);
+      client.publish("robots/TL2/controller", decision);
+    }
+  </script>
+</body>
+</html>
