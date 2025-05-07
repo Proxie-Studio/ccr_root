@@ -11,7 +11,7 @@
 //WiFi
 const char* SSID         = "Norrspect AI";
 const char* PASS         = "norrspect.ai";
-const char* MQTT_BROKER  = "192.168.0.114"; //your Ubuntu machine IP
+const char* MQTT_BROKER  = "134.169.117.5"; //your Ubuntu machine IP
 const int   MQTT_PORT    = 1883;
 
 const char* ROBOT_ID     = "TL1";

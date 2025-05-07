@@ -13,7 +13,7 @@ Adafruit_NeoPixel greenPixels(NUMPIXELS, GREEN_PIN, NEO_GRB + NEO_KHZ800);
 // WiFi Config
 const char* SSID        = "Norrspect AI";
 const char* PASS        = "norrspect.ai";
-const char* MQTT_BROKER = "192.168.0.114";  // your Ubuntu machine IP
+const char* MQTT_BROKER = "134.169.117.5";  // your Ubuntu machine IP
 const int   MQTT_PORT   = 1883;
 
 const char* ROBOT_ID    = "TL2";

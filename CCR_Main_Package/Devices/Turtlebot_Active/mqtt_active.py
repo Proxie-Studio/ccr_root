@@ -11,7 +11,7 @@ DEVICE_TYPE = "Active"
 DEVICE_NAME = "Turtlebot1"
 DECISION = "Scanning"
 
-MQTT_BROKER = "192.168.0.114"
+MQTT_BROKER = "134.169.117.5"
 MQTT_PORT = 1883
 
 def get_ip():

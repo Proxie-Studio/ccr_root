@@ -14,7 +14,7 @@ DEVICE_NAME = "Turtlebot1"
 SERIAL_PORT = "/dev/ttyACM0"
 BAUD_RATE = 9600
 
-MQTT_BROKER = "192.168.0.114"  # Update this if needed
+MQTT_BROKER = "134.169.117.5"  # Update this if needed
 MQTT_PORT = 1883
 
 def get_ip():
