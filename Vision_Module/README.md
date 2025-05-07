@@ -31,7 +31,7 @@ autotrust_streamlit/
 
 ```
 
-## Component Interaction
+### Component Interaction
 
 AutoTrust follows a sequential workflow with three main components:
 
@@ -41,7 +41,7 @@ AutoTrust follows a sequential workflow with three main components:
 
 Data flows through the application using Streamlit's session state, allowing seamless transition between components while maintaining application state.
 
-## Technology Stack
+### Technology Stack
 
 - **Frontend**: Streamlit web interface
 - **Computer Vision**: OpenCV for image processing
@@ -56,7 +56,7 @@ Data flows through the application using Streamlit's session state, allowing sea
 - 4GB RAM minimum (8GB recommended)
 - 500MB disk space
 
-## Dependencies
+### Dependencies
 
 AutoTrust relies on the following main dependencies:
 
@@ -99,7 +99,7 @@ streamlit run app.py
 
 The application will start and open in your default web browser.
 
-## Verifying Installation
+### Verifying Installation
 
 After starting the application, you should see:
 
