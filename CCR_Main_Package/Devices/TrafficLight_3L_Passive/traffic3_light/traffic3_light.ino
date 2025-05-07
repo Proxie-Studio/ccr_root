@@ -9,8 +9,8 @@
 #define NUMPIXELS   9
 
 //WiFi
-const char* SSID         = "Norrspect AI";
-const char* PASS         = "norrspect.ai";
+const char* SSID         = "Your SSID";
+const char* PASS         = "SSID Password";
 const char* MQTT_BROKER  = "134.169.117.5"; //your Ubuntu machine IP
 const int   MQTT_PORT    = 1883;
 
