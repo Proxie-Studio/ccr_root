@@ -4,16 +4,17 @@ This repository contains all components related to the **CCR (Coordinated Contro
 
 ## Repository Structure
 
+```
 /
 ├── CCR_Central_Hub_Implementation/ # Core Android APK and Arduino code for traffic light simulation
 ├── CCR_Main_Package/ # Dashboard, MQTT logic, and connected device logic (e.g., TurtleBot, Traffic Lights)
 ├── Shared_Resources/ # Shared documents, architecture diagrams, and configuration files
 ├── Vision_Module/ # Computer vision tool setup and integration
-
+```
 
 ---
 
-### 📁 `CCR_Central_Hub_Implementation/`
+### `CCR_Central_Hub_Implementation/`
 
 - Contains the **CCR Android application (APK)** for traffic control interfaces.
 - Includes **Arduino code** to run the ESP32-based traffic light hardware used in simulation.
@@ -21,7 +22,7 @@ This repository contains all components related to the **CCR (Coordinated Contro
 
 ---
 
-### 📁 `CCR_Main_Package/`
+### `CCR_Main_Package/`
 
 - Implements the **main dashboard**, hosted on a central Ubuntu server.
 - Contains device logic for:
@@ -32,7 +33,7 @@ This repository contains all components related to the **CCR (Coordinated Contro
 
 ---
 
-### 📁 `Shared_Resources/`
+### `Shared_Resources/`
 
 - Contains supporting files for the project:
   - System architecture diagrams
@@ -41,7 +42,7 @@ This repository contains all components related to the **CCR (Coordinated Contro
 
 ---
 
-### 📁 `Vision_Module/`
+### `Vision_Module/`
 
 - Tools and setup scripts for integrating **computer vision** into the system.
 - Used for image-based agent recognition and camera processing.
