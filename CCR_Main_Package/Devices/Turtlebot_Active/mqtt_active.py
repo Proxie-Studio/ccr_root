@@ -28,7 +28,7 @@ def main():
     client = mqtt.Client()
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-    topic = f"robots/{ROBOT_ID}/{ROLE}"  # e.g., robots/INR90/active
+    topic = f"robots/{ROBOT_ID}/{ROLE}"  
 
     while True:
         try:
@@ -40,7 +40,7 @@ def main():
                 "ip_address": get_ip(),
                 "status": "",  # Not applicable for active
                 "dominance": DOMINANCE,
-                "decision": DECISION  # Your current behavior/action
+                "decision": DECISION  
             }
 
             client.publish(topic, json.dumps(data))
@@ -49,7 +49,7 @@ def main():
         except Exception as e:
             print(f"Error: {e}")
 
-        time.sleep(0.5)  # Reasonable interval for updates
+        time.sleep(0.5)  
 
 if __name__ == "__main__":
     main()
