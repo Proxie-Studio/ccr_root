@@ -9,21 +9,26 @@ MQTT_PORT = 1883
 COMMAND_TOPIC = "robots/decision/command"
 
 # Decision parameters
-CONSENSUS_TIMEOUT = 1.5
-CHECK_INTERVAL = 1.0
-MOVE_STEPS = 10
-CONSENSUS_THRESHOLD = 2
+CONSENSUS_TIMEOUT = 1.5  # seconds
+CHECK_INTERVAL = 1.0    # seconds
+MOVE_STEPS = 10      # default movement if consensus reached
+CONSENSUS_THRESHOLD = 2  # number of robots that must say "No Object Detected"
 
-# Global state
+# Global maps
 device_order = {}
 status_map = {}
 device_counter = 1
 
+# MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code", rc)
     client.subscribe("robots/+/active")
     client.subscribe("robots/+/passive")
     client.subscribe("robots/+/data")
+    # Subscribe to the decision topics for Turtlebots
+    client.subscribe("robots/Turtlebot1/decision")
+    client.subscribe("robots/Turtlebot2/decision")
+    print("Subscribed to: robots/+/active, robots/+/passive, robots/+/data, robots/Turtlebot1/decision, robots/Turtlebot2/decision")
 
 def on_message(client, userdata, msg):
     global device_counter
@@ -32,52 +37,54 @@ def on_message(client, userdata, msg):
         device_name = payload.get("device_name")
         status = payload.get("status", "")
         timestamp = time.time()
+        decision = payload.get("decision")  # Get the decision if it's in the payload
 
         if not device_name:
             return
 
+        # Assign order on first appearance
         if device_name not in device_order:
             device_order[device_name] = device_counter
             print(f"Registered {device_name} as #{device_counter}")
             device_counter += 1
 
+        # Update status
         if status:
             status_map[device_name] = {
                 "status": status,
                 "last_seen": timestamp
             }
 
+        # Handle decision messages (for the python script itself)
+        if decision and "Turtlebot" in msg.topic:
+            print(f"Received decision '{decision}' from {msg.topic}")
+
     except Exception as e:
         print(f"Error handling message: {e}")
 
+# Movement logic
 def issue_move_command():
-    now = time.time()
     move_payload = {
         "action": "MOVE",
         "steps": MOVE_STEPS,
-        "timestamp": now,
+        "timestamp": time.time(),
         "device_order": [
             {"name": name, "order": order}
             for name, order in sorted(device_order.items(), key=lambda x: x[1])
         ]
     }
 
-    # Broadcast to all robots
     client.publish(COMMAND_TOPIC, json.dumps(move_payload))
     print(f"Move {MOVE_STEPS} steps")
 
-    # Send individual decision updates to active turtlebots
-    for name in device_order:
-        if "Turtlebot" in name:
-            decision_payload = {
-                "device_name": name,
-                "device_type": "Active",
-                "decision": f"MOVE {MOVE_STEPS}",
-                "timestamp": now
-            }
-            client.publish(f"robots/{name}/data", json.dumps(decision_payload))
-            print(f"Published decision to {name}: {decision_payload}")
+    # Publish the decision to the active Turtlebots' decision topic
+    for device_name, order in device_order.items():
+        if "Turtlebot" in device_name:
+            decision_payload = {"device_name": device_name, "decision": f"Move {MOVE_STEPS} steps"}  # Include MOVE_STEPS
+            client.publish(f"robots/{device_name}/decision", json.dumps(decision_payload))
+            print(f"Published decision 'Move {MOVE_STEPS} steps' to robots/{device_name}/decision")
 
+# Consensus check
 def check_consensus():
     now = time.time()
 
@@ -107,7 +114,7 @@ def start_consensus_loop():
     check_consensus()
     threading.Timer(CHECK_INTERVAL, start_consensus_loop).start()
 
-# Main MQTT setup
+# Main
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
@@ -118,6 +125,7 @@ client.loop_start()
 print("Decision handler running...")
 start_consensus_loop()
 
+# Keep alive
 try:
     while True:
         time.sleep(1)

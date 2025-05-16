@@ -71,26 +71,46 @@
       client.subscribe('robots/+/active');
       client.subscribe('robots/+/passive');
       client.subscribe('robots/+/data');
+      client.subscribe('robots/Turtlebot1/decision'); // Subscribe to Turtlebot1's decision
+      client.subscribe('robots/Turtlebot2/decision'); // Subscribe to Turtlebot2's decision
     });
 
     client.on('message', (topic, message) => {
-      const data = JSON.parse(message.toString());
-      const key = `${data.id}-${data.device_type}`;
+      const payloadString = message.toString();
+      try {
+        const data = JSON.parse(payloadString);
+        let key;
 
-      robotRows[key] = {
-        id: data.id,
-        device_type: data.device_type,
-        device_name: data.device_name,
-        ip_address: data.ip_address,
-        dominance: data.dominance,
-        status: data.status || "",
-        decision: data.decision || "",
-        belief: data.belief || "",
-        lastUpdate: new Date().toLocaleTimeString()
-      };
+        if (topic.endsWith('/active') || topic.endsWith('/passive') || topic.endsWith('/data')) {
+          key = `${data.id}-${data.device_type}`;
+          robotRows[key] = {
+            id: data.id,
+            device_type: data.device_type,
+            device_name: data.device_name,
+            ip_address: data.ip_address,
+            dominance: data.dominance,
+            status: data.status || "",
+            decision: robotRows[key]?.decision || "", // Keep existing decision or initialize empty
+            belief: data.belief || "",
+            lastUpdate: new Date().toLocaleTimeString()
+          };
+        } else if (topic.endsWith('/decision')) {
+          const parts = topic.split('/');
+          const deviceName = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
 
-      updateTable();
-      evaluateTL2();
+          // Find the active entry for this Turtlebot and update its decision
+          for (const k in robotRows) {
+            if (robotRows[k].device_name === deviceName && robotRows[k].device_type === "Active") {
+              robotRows[k].decision = data.decision;
+              break;
+            }
+          }
+        }
+        updateTable();
+        evaluateTL2();
+      } catch (error) {
+        console.error("Error processing MQTT message:", error, topic, payloadString);
+      }
     });
 
     function updateTable() {
