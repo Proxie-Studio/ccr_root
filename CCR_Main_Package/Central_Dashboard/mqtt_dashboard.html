@@ -27,12 +27,11 @@
     .status-bad {
       color: red;
     }
-    .decision-box {
-      border: 1px solid #ccc;
-      padding: 4px 8px;
-      border-radius: 10px;
-      display: inline-block;
+    .decision-green {
       color: green;
+    }
+    .decision-red {
+      color: red;
     }
     .role-header {
       background-color: #f0f0f0;
@@ -62,7 +61,7 @@
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
-    const client = mqtt.connect('ws://134.169.115.153:9001');
+    const client = mqtt.connect('ws://134.169.115.164:9001');
     const tableBody = document.querySelector("#robot-table tbody");
     const robotRows = {}; // key: ID + device_type
 
@@ -96,7 +95,7 @@
           };
         } else if (topic.endsWith('/decision')) {
           const parts = topic.split('/');
-          const deviceName = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
+          const device方で = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
 
           // Find the active entry for this Turtlebot and update its decision
           for (const k in robotRows) {
@@ -147,9 +146,20 @@
             }
           }
 
-          const decision = robot.device_type === "Active" && robot.decision
-            ? `<span class="decision-box">${robot.decision}</span>`
-            : '';
+          let decision = '';
+          if (robot.device_type === "Active" && robot.decision) {
+            if (robot.device_name === "TrafficLight2") {
+              // For TrafficLight2, display "Green" or "Red" with appropriate color
+              const decisionText = robot.decision === "g" ? "Green" : "Red";
+              const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
+              decision = `<span class="${decisionClass}">${decisionText}</span>`;
+            } else {
+              // For Turtlebots, keep the original display (though currently they use the same "g"/"r" format)
+              const decisionText = robot.decision === "g" ? "Green" : "Red";
+              const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
+              decision = `<span class="${decisionClass}">${decisionText}</span>`;
+            }
+          }
 
           const roleHeader = isFirst
             ? `<tr class="role-header"><td colspan="8">${robot.device_name} (ID: #${robot.id})</td></tr>`
@@ -178,24 +188,48 @@
     function evaluateTL2() {
       let turtlebot = null;
       let traffic1 = null;
+      let trafficLight2Active = null;
 
+      // Find Turtlebot (Passive), TrafficLight1 (Passive), and TrafficLight2 (Active) in robotRows
       for (const key in robotRows) {
-        if (robotRows[key].device_name.includes("Turtlebot") && robotRows[key].device_type === "Passive") {
-          turtlebot = robotRows[key];
+        const robot = robotRows[key];
+        if (robot.device_name.includes("Turtlebot") && robot.device_type === "Passive") {
+          turtlebot = robot;
         }
-        if (robotRows[key].device_name === "TrafficLight1" && robotRows[key].device_type === "Passive") {
-          traffic1 = robotRows[key];
+        if (robot.device_name === "TrafficLight1" && robot.device_type === "Passive") {
+          traffic1 = robot;
+        }
+        if (robot.device_name === "TrafficLight2" && robot.device_type === "Active") {
+          trafficLight2Active = robot;
         }
       }
 
-      if (!turtlebot || !traffic1) return;
+      // Log missing data for debugging
+      if (!turtlebot || !traffic1) {
+        console.log("evaluateTL2: Missing required data for decision", {
+          turtlebot: !!turtlebot,
+          traffic1: !!traffic1
+        });
+        return;
+      }
 
+      // Compute decision based on passive Turtlebot and TrafficLight1
       const objectClear = turtlebot.status === "No Object Detected";
       const goSignal = traffic1.belief === "Green";
-      const decision = (objectClear && goSignal) ? "g" : "r";
+      const decision = objectClear && goSignal ? "g" : "r";
 
-      console.log("Decision for TL2:", decision);
+      console.log(`Decision for TL2 (Turtlebot: ${turtlebot.device_name}, TrafficLight1: ${traffic1.belief}):`, decision);
+
+      // Publish decision to TL2 controller
       client.publish("robots/TL2/controller", decision);
+
+      // Update decision for TrafficLight2 (Active) in robotRows if it exists
+      if (trafficLight2Active) {
+        const key = `${trafficLight2Active.id}-${trafficLight2Active.device_type}`;
+        robotRows[key].decision = decision;
+        console.log(`Updated decision for TrafficLight2 (Active): ${decision}`);
+        updateTable(); // Refresh the table to reflect the new decision
+      }
     }
   </script>
 </body>
