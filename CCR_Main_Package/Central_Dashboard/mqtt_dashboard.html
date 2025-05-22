@@ -95,7 +95,7 @@
           };
         } else if (topic.endsWith('/decision')) {
           const parts = topic.split('/');
-          const device方で = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
+          const deviceName = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
 
           // Find the active entry for this Turtlebot and update its decision
           for (const k in robotRows) {
@@ -154,7 +154,7 @@
               const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
               decision = `<span class="${decisionClass}">${decisionText}</span>`;
             } else {
-              // For Turtlebots, keep the original display (though currently they use the same "g"/"r" format)
+              // For Turtlebots, keep the same display format for consistency
               const decisionText = robot.decision === "g" ? "Green" : "Red";
               const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
               decision = `<span class="${decisionClass}">${decisionText}</span>`;
@@ -186,15 +186,15 @@
     }
 
     function evaluateTL2() {
-      let turtlebot = null;
+      let turtlebots = [];
       let traffic1 = null;
       let trafficLight2Active = null;
 
-      // Find Turtlebot (Passive), TrafficLight1 (Passive), and TrafficLight2 (Active) in robotRows
+      // Collect all passive Turtlebots, TrafficLight1 (Passive), and TrafficLight2 (Active)
       for (const key in robotRows) {
         const robot = robotRows[key];
         if (robot.device_name.includes("Turtlebot") && robot.device_type === "Passive") {
-          turtlebot = robot;
+          turtlebots.push(robot);
         }
         if (robot.device_name === "TrafficLight1" && robot.device_type === "Passive") {
           traffic1 = robot;
@@ -205,20 +205,20 @@
       }
 
       // Log missing data for debugging
-      if (!turtlebot || !traffic1) {
+      if (turtlebots.length === 0 || !traffic1) {
         console.log("evaluateTL2: Missing required data for decision", {
-          turtlebot: !!turtlebot,
+          turtlebots: turtlebots.length,
           traffic1: !!traffic1
         });
         return;
       }
 
-      // Compute decision based on passive Turtlebot and TrafficLight1
-      const objectClear = turtlebot.status === "No Object Detected";
+      // Compute decision: objectClear is true only if ALL Turtlebots detect no object
+      const objectClear = turtlebots.every(turtlebot => turtlebot.status === "No Object Detected");
       const goSignal = traffic1.belief === "Green";
       const decision = objectClear && goSignal ? "g" : "r";
 
-      console.log(`Decision for TL2 (Turtlebot: ${turtlebot.device_name}, TrafficLight1: ${traffic1.belief}):`, decision);
+      console.log(`Decision for TL2 (Turtlebots: ${turtlebots.map(t => `${t.device_name}: ${t.status}`).join(", ")}, TrafficLight1: ${traffic1.belief}):`, decision);
 
       // Publish decision to TL2 controller
       client.publish("robots/TL2/controller", decision);
