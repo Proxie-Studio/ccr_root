@@ -63,15 +63,15 @@
   <script>
     const client = mqtt.connect('ws://134.169.115.164:9001');
     const tableBody = document.querySelector("#robot-table tbody");
-    const robotRows = {}; // key: ID + device_type
+    const robotRows = {}; 
 
     client.on('connect', () => {
       console.log("Connected to MQTT broker");
       client.subscribe('robots/+/active');
       client.subscribe('robots/+/passive');
       client.subscribe('robots/+/data');
-      client.subscribe('robots/Turtlebot1/decision'); // Subscribe to Turtlebot1's decision
-      client.subscribe('robots/Turtlebot2/decision'); // Subscribe to Turtlebot2's decision
+      client.subscribe('robots/Turtlebot1/decision'); 
+      client.subscribe('robots/Turtlebot2/decision'); 
     });
 
     client.on('message', (topic, message) => {
@@ -89,15 +89,14 @@
             ip_address: data.ip_address,
             dominance: data.dominance,
             status: data.status || "",
-            decision: robotRows[key]?.decision || "", // Keep existing decision or initialize empty
+            decision: robotRows[key]?.decision || "", 
             belief: data.belief || "",
             lastUpdate: new Date().toLocaleTimeString()
           };
         } else if (topic.endsWith('/decision')) {
           const parts = topic.split('/');
-          const deviceName = parts[1]; // e.g., "Turtlebot1" or "Turtlebot2"
+          const deviceName = parts[1]; 
 
-          // Find the active entry for this Turtlebot and update its decision
           for (const k in robotRows) {
             if (robotRows[k].device_name === deviceName && robotRows[k].device_type === "Active") {
               robotRows[k].decision = data.decision;
@@ -149,12 +148,10 @@
           let decision = '';
           if (robot.device_type === "Active" && robot.decision) {
             if (robot.device_name === "TrafficLight2") {
-              // For TrafficLight2, display "Green" or "Red" with appropriate color
               const decisionText = robot.decision === "g" ? "Green" : "Red";
               const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
               decision = `<span class="${decisionClass}">${decisionText}</span>`;
             } else {
-              // For Turtlebots, keep the same display format for consistency
               const decisionText = robot.decision === "g" ? "Green" : "Red";
               const decisionClass = robot.decision === "g" ? "decision-green" : "decision-red";
               decision = `<span class="${decisionClass}">${decisionText}</span>`;
@@ -190,7 +187,6 @@
       let traffic1 = null;
       let trafficLight2Active = null;
 
-      // Collect all passive Turtlebots, TrafficLight1 (Passive), and TrafficLight2 (Active)
       for (const key in robotRows) {
         const robot = robotRows[key];
         if (robot.device_name.includes("Turtlebot") && robot.device_type === "Passive") {
@@ -204,7 +200,6 @@
         }
       }
 
-      // Log missing data for debugging
       if (turtlebots.length === 0 || !traffic1) {
         console.log("evaluateTL2: Missing required data for decision", {
           turtlebots: turtlebots.length,
@@ -213,22 +208,19 @@
         return;
       }
 
-      // Compute decision: objectClear is true only if ALL Turtlebots detect no object
       const objectClear = turtlebots.every(turtlebot => turtlebot.status === "No Object Detected");
       const goSignal = traffic1.belief === "Green";
       const decision = objectClear && goSignal ? "g" : "r";
 
       console.log(`Decision for TL2 (Turtlebots: ${turtlebots.map(t => `${t.device_name}: ${t.status}`).join(", ")}, TrafficLight1: ${traffic1.belief}):`, decision);
 
-      // Publish decision to TL2 controller
       client.publish("robots/TL2/controller", decision);
 
-      // Update decision for TrafficLight2 (Active) in robotRows if it exists
       if (trafficLight2Active) {
         const key = `${trafficLight2Active.id}-${trafficLight2Active.device_type}`;
         robotRows[key].decision = decision;
         console.log(`Updated decision for TrafficLight2 (Active): ${decision}`);
-        updateTable(); // Refresh the table to reflect the new decision
+        updateTable(); 
       }
     }
   </script>
