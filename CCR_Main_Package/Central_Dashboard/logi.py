@@ -4,14 +4,14 @@ import json
 import threading
 
 # MQTT Config
-MQTT_BROKER = "134.169.115.153"
+MQTT_BROKER = "134.169.115.164"
 MQTT_PORT = 1883
 COMMAND_TOPIC = "robots/decision/command"
 
 # Decision parameters
-CONSENSUS_TIMEOUT = 1.5  # seconds
-CHECK_INTERVAL = 1.0    # seconds
-MOVE_STEPS = 10      # default movement if consensus reached
+CONSENSUS_TIMEOUT = 1.5  
+CHECK_INTERVAL = 1.0    
+MOVE_STEPS = 10      # Number of steps
 CONSENSUS_THRESHOLD = 2  # number of robots that must say "No Object Detected"
 
 # Global maps
@@ -25,10 +25,10 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("robots/+/active")
     client.subscribe("robots/+/passive")
     client.subscribe("robots/+/data")
-    # Subscribe to the decision topics for Turtlebots
-    client.subscribe("robots/Turtlebot1/decision")
-    client.subscribe("robots/Turtlebot2/decision")
-    print("Subscribed to: robots/+/active, robots/+/passive, robots/+/data, robots/Turtlebot1/decision, robots/Turtlebot2/decision")
+    # client.subscribe("robots/Turtlebot1/decision")
+    # client.subscribe("robots/Turtlebot2/decision")
+    client.subscribe("robots/+/decision")
+    print("Subscribed to: robots/+/active, robots/+/passive, robots/+/data, robots/+/decision")
 
 def on_message(client, userdata, msg):
     global device_counter
